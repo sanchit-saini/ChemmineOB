@@ -4,7 +4,8 @@
 	Convert Formats
 }
 \description{
-	Converts compound data from one format to another.
+	Converts compound data from one format to another. Some formats are not supported on windows.
+	This currently includes "INCHI" and "INCHIKEY".
 }
 \usage{
 convertFormat(from, to, source,options=data.frame(names="gen2D",args=""))
@@ -67,6 +68,8 @@ OpenBabel  http://openbabel.org
 }
 \examples{
    #create an SDF from a SMILES string and put the atoms in the canonical order
+\dontrun{
 	sdfStr = convertFormat("SMI","SDF","CC(=O)OC1=CC=CC=C1C(=O)O\ttest_name",
                           options=data.frame(names="canonical",args=""))
+}
 }

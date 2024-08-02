@@ -1,30 +1,32 @@
-\name{convertFormatFile}
-\alias{convertFormatFile}
+\name{convertToImage}
+\alias{convertToImage}
 \title{
-	Convert Format of Files
+	Convert To Image
 }
 \description{
-	Convert a file from one format to another. Some formats are not supported on windows.
-	This currently includes "INCHI" and "INCHIKEY".
+	Converts compound data to an image format
 }
 \usage{
-convertFormatFile(from, to, fromFile, toFile,options=data.frame(names="gen2D",args=""))
+
+convertToImage(from,to,source,toFile,options=data.frame(names="gen2D",args=""),
+									out_options=data.frame(names=c("p"),args=c(300)))
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{from}{
-	  The format that \code{fromFile} is in. This should be a string supported by OpenBabel.
+	  The format that \code{source} is in. This should be a string supported by OpenBabel.
 	}
   \item{to}{
-	  The format to convert \code{toFile} to. 
+	  The  image format to convert \code{source} to. This should be either "PNG", "POV", or "SVG".
 	}
-  \item{fromFile}{
-	  The name of the file to be converted
+  \item{source}{
+	  The initial compound format, as a string. The format of the string should be identical to
+	  the file format of the same name. Tabs and newlines may be represented with \\t and \\n,
+	  repsectivly.
 	}
-  \item{toFile}{
-	  The name of the new file to be created or overwritten
+	\item{toFile}{
+		The name of the output file.
 	}
- \item{options}{
+   \item{options}{
       This is a data frame listing OpenBabel Options that should be
       applied while converting each compound. The "names" column
       should be the name of each option and the "args" column sould be
@@ -53,10 +55,19 @@ convertFormatFile(from, to, fromFile, toFile,options=data.frame(names="gen2D",ar
       v    Isomorphism filter(-s, -v options replacement)(not displayed in GUI)
 
    }
+	\item{out_options}{
+		Similar to the \code{options} argument, but these options apply to the output format.
+		
+		For the "PNG" format, possible options are: 
 
+		"p" for the number of pixels on the square output file.
+
+		For the "SVG" format, see the OpenBabel docs for a full list (https://openbabel.org/docs/dev/FileFormats/SVG_2D_depiction.html).
+	}
 }
 \value{
-	No value is returned. \code{toFile} will be created with the compound in the new format.
+	Generates a square image with the given compounds arranged in a grid format. The width (and height, which must be the same)
+	can be given using the \code{out_options} with argument "p". Writes the resulting image to a file specified by \code{to_file}.
 }
 \references{
 OpenBabel  http://openbabel.org
@@ -65,11 +76,11 @@ OpenBabel  http://openbabel.org
 	Kevin Horan
 }
 
-\seealso{
-	\code{\link{convertFormat}}
-}
+
 \examples{
+   # Convert the given smiles string to a PNG image with size 500x500.
 	\dontrun{
-		convertFormatFile("SMI","SDF","test.smiles","test.sdf")
+		sdfStr = convertToImage("SMI","PNG","CC(=O)OC1=CC=CC=C1C(=O)O\ttest_name","out_image.png",
+                          out_options=data.frame(names="p",args="500"))
 	}
 }

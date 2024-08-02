@@ -6,6 +6,10 @@ packageName = "ChemmineOB"
 	# the openbabel plugins to load properly. Further, when calling
 	# functions from this library, you must set PACKAGE=packageName in the .Call function
 	# or it will not find any of the symbols.
+  
+  if(! .supportedPlatform()){
+    warning("ChemmineOB is not fully supported on this platform. ", .Platform$OS," ", .Platform$r_arch)
+  }
 
 	library.dynam(pkgname,package=pkgname,lib.loc=libname,local=FALSE)
 
@@ -13,7 +17,9 @@ packageName = "ChemmineOB"
 	 Sys.setenv(BABEL_DATADIR=system.file("openbabel_data",package=pkgname))
 
 }
-
+.supportedPlatform <- function(){
+  !(.Platform$OS == "windows" && .Platform$r_arch == "i386")
+}
 convertFormat <- function(from,to,source,options=data.frame(names="gen2D",args="")){
 	
 	inStr = istreamFromString(source)
@@ -50,13 +56,36 @@ convertFormatFile <- function(from,to,fromFile,toFile, options=data.frame(names=
 
 	closeOfstream(os)
 }
+convertToImage <- function(from,to,source,toFile,options=data.frame(names="gen2D",args=""),
+									out_options=data.frame(names=c("p"),args=c(300))){
+	
+	inStr = istreamFromString(source)
+	os= ostreamToFile(toFile)
+
+	conv = OBConversion(inStr,os)
+
+	if(!OBConversion_SetInAndOutFormats(conv,from,to))
+		stop("failed to set 'from' and
+			  'to' formats: ",from," ",to)
+
+	for(i in seq(to=nrow(options),length=nrow(options))){
+		OBConversion_AddOption(conv,as.character(options[i,1]),"GENOPTIONS",as.character(options[i,2]))
+	}
+	for(i in seq(to=nrow(out_options),length=nrow(out_options))){
+		OBConversion_AddOption(conv,as.character(out_options[i,1]),"OUTOPTIONS",as.character(out_options[i,2]))
+	}
+	#OBConversion_AddOption(conv,"gen2D","GENOPTIONS")
+	OBConversion_Convert(conv)
+
+	closeOfstream(os)
+}
 canonicalNumbering_OB <- function(obmolRefs) {
 
 	if(length(obmolRefs)==1)
 		obmolRefs=c(obmolRefs)
 
 	Map(function(mol){
-		.Call("canonicalReordering",mol,PACKAGE="ChemmineOB")
+		.Call("canonicalReordering",mol@ref,PACKAGE="ChemmineOB")
 	},obmolRefs)
 	
 }
@@ -98,7 +127,7 @@ prop_OB<- function(obmolRefs) {
 	},obmolRefs))
 }
 
-fingerprint_OB <- function(obmolRefs, fingerprintName){
+fingerprint_OB <- function(obmolRefs, fingerprintName,reverse=FALSE){
 
 	OBConversion()
 
@@ -108,16 +137,21 @@ fingerprint_OB <- function(obmolRefs, fingerprintName){
 		stop("fingerprint ",fingerprintName," not found")
 
 	Reduce(rbind,Map(function(mol){
-		fp = vectorUnsignedInt(1)
+		fp = numeric(1)
 
-		OBFingerprint_GetFingerprint(fpHandle,mol,fp)
+		fp=OBFingerprint_GetFingerprint(fpHandle,mol,fp)[[2]] # new fp arg is returned as second element of a list
 		if(numBits == -1)
-			numBits = vectorUnsignedInt_size(fp) * 4 * 8
+			numBits = length(fp) * 4 * 8
 		row = unlist(Map(function(i){
-					 r=OBFingerprint_GetBit(fpHandle,fp,i-1)
+					 r=OBFingerprint_GetBit(fpHandle,fp,i-1)[[1]]
 					 if(r) 1 else 0
 				},seq(1,numBits,length.out=numBits)))
 		if(debug) print(row)
+
+		# for some reason the fingerpints computed here are the 
+		# reverse bit string of what obabel outputs. 
+		if(reverse) 
+			row = rev(row)
 		row
 	  },obmolRefs))
 }
@@ -171,7 +205,7 @@ smartsSearch_OB<- function(obmolRefs,smartsPattern,uniqueMatches=TRUE){
 		OBSmartsPattern_Match(sp,mol)
 		if(uniqueMatches){
 			umap = OBSmartsPattern_GetUMapList(sp)
-			vectorvInt_size(umap)
+			length(umap)
 		}else
 			OBSmartsPattern_NumMatches(sp)
 
